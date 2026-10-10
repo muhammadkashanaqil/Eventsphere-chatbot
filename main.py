@@ -31,6 +31,7 @@ def chat(request: ChatRequest):
     try:
 
         answer = generate_event_answer(
+            event_slug=request.event_slug,
             event_data=request.event_data,
             user_message=request.message
         )
