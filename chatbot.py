@@ -1,76 +1,101 @@
 import os
-import json
 
 from dotenv import load_dotenv
 from google import genai
 
+from rag_service import search_event_knowledge
+
 
 load_dotenv()
 
-client = genai.Client(
-    api_key=os.getenv("GEMINI_API_KEY")
-)
 
-from rag_service import (
-    has_event_knowledge,
-    index_event_knowledge,
-    search_event_knowledge
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+
+if not GEMINI_API_KEY:
+    raise RuntimeError(
+        "GEMINI_API_KEY is missing"
+    )
+
+
+client = genai.Client(
+    api_key=GEMINI_API_KEY
 )
 
 
 def generate_event_answer(
-    event_slug: str,
-    event_data: dict,
-    user_message: str
-):
+        event_slug: str,
+        user_message: str
+) -> str:
 
-    # First time this event is used:
-    # create its RAG knowledge automatically
-    if not has_event_knowledge(event_slug):
+    # =====================================================
+    # 1. Retrieve only relevant RAG knowledge
+    # =====================================================
 
-        index_event_knowledge(
-            event_slug,
-            event_data
-        )
-
-    # Retrieve only relevant information
     matches = search_event_knowledge(
         event_slug=event_slug,
         question=user_message,
-        match_count=5
+        match_count=4
     )
 
-    if matches:
 
-        context = "\n\n".join(
-            f"Section: {item['section']}\n"
-            f"{item['content']}"
-            for item in matches
+    # Event hasn't been indexed yet or no knowledge found.
+    if not matches:
+
+        return (
+            "I don't have enough information about this "
+            "event yet. Please contact the event organizer."
         )
 
-    else:
-        context = "No relevant event information was found."
 
+    # =====================================================
+    # 2. Build small context from retrieved chunks
+    # =====================================================
+
+    context_parts = []
+
+    for item in matches:
+
+        context_parts.append(
+            f"""
+Section: {item['section']}
+Information:
+{item['content']}
+""".strip()
+        )
+
+
+    context = "\n\n".join(
+        context_parts
+    )
+
+
+    # =====================================================
+    # 3. Gemini only receives retrieved information
+    # =====================================================
 
     prompt = f"""
 You are the official AI Event Assistant for EventSphere.
 
-Answer using ONLY the retrieved event information below.
+Your job is to answer questions about ONE event.
 
-Do not invent:
-- ticket prices
-- dates
-- times
-- locations
-- schedules
-- sponsors
-- policies
-
-If the information is not available, clearly say that
-you do not have that information.
-
-CURRENT EVENT:
+EVENT:
 {event_slug}
+
+RULES:
+
+1. Use ONLY the retrieved event information below.
+2. Never invent ticket prices.
+3. Never invent dates or times.
+4. Never invent locations.
+5. Never invent schedules.
+6. Never invent sponsors.
+7. Never invent policies.
+8. If the answer cannot be found in the retrieved
+   information, clearly say that the information
+   is not available.
+9. Keep your response concise and helpful.
+10. Respond in the user's language when possible.
 
 RETRIEVED EVENT INFORMATION:
 
@@ -81,9 +106,25 @@ VISITOR QUESTION:
 {user_message}
 """
 
+
+    # =====================================================
+    # 4. Generate answer
+    # =====================================================
+
     interaction = client.interactions.create(
         model="gemini-3.8-flash",
         input=prompt
     )
 
-    return interaction.output_text
+
+    answer = interaction.output_text
+
+
+    if not answer:
+        return (
+            "I couldn't generate an answer right now. "
+            "Please try again."
+        )
+
+
+    return answer
