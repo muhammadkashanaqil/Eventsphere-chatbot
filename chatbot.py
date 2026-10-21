@@ -112,7 +112,7 @@ VISITOR QUESTION:
     # =====================================================
 
     interaction = client.interactions.create(
-        model="gemini-3.8-flash",
+        model="gemini-3.5-flash-lite",
         input=prompt
     )
 
