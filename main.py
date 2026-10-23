@@ -59,27 +59,27 @@ def health():
     response_model=IndexEventResponse
 )
 def index_event(
-        request: IndexEventRequest
+    request: IndexEventRequest
 ):
 
     try:
 
         chunks = index_event_knowledge(
+            event_id=str(request.event_id),
             event_slug=request.event_slug,
             event_data=request.event_data
         )
 
         return IndexEventResponse(
             status="indexed",
-            event_slug=request.event_slug,
+            event_id=request.event_id,
             chunks=chunks
         )
 
     except Exception as e:
 
         print(
-            f"INDEX EVENT ERROR "
-            f"[{request.event_slug}]: {e}"
+            f"INDEX ERROR [{request.event_id}]: {e}"
         )
 
         raise HTTPException(
@@ -99,14 +99,13 @@ def index_event(
     "/chat",
     response_model=ChatResponse
 )
-def chat(
-        request: ChatRequest
-):
+def chat(request: ChatRequest):
 
     try:
 
         answer = generate_event_answer(
-            event_slug=request.event_slug,
+            event_id=str(request.event_id),
+            session_id=str(request.session_id),
             user_message=request.message
         )
 
@@ -118,8 +117,7 @@ def chat(
     except Exception as e:
 
         print(
-            f"CHAT ERROR "
-            f"[{request.event_slug}]: {e}"
+            f"CHAT ERROR [{request.event_id}]: {e}"
         )
 
         raise HTTPException(
