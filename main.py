@@ -14,6 +14,11 @@ from rag_service import (
 )
 
 
+from rag_service import (
+    get_chat_history,
+    search_event_knowledge
+)
+
 app = FastAPI(
     title="EventSphere RAG Chatbot",
     version="2.0.0"
@@ -124,3 +129,24 @@ def chat(request: ChatRequest):
             status_code=500,
             detail=f"Chat failed: {str(e)}"
         )
+        
+        
+@app.post("/debug-rag")
+def debug_rag(request: ChatRequest):
+
+    history = get_chat_history(
+        event_id=str(request.event_id),
+        session_id=str(request.session_id),
+        limit=8
+    )
+
+    matches = search_event_knowledge(
+        event_id=str(request.event_id),
+        question=request.message,
+        match_count=4
+    )
+
+    return {
+        "history": history,
+        "matches": matches
+    }
