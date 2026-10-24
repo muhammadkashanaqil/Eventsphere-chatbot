@@ -137,13 +137,13 @@ def debug_rag(request: ChatRequest):
     history = get_chat_history(
         event_id=str(request.event_id),
         session_id=str(request.session_id),
-        limit=8
+        limit=4
     )
 
     matches = search_event_knowledge(
         event_id=str(request.event_id),
         question=request.message,
-        match_count=4
+        match_count=3
     )
 
     return {
