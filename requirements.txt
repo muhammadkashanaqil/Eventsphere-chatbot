@@ -3,3 +3,12 @@ google-genai
 python-dotenv
 pydantic
 supabase
+
+# fastapi>=0.115
+# uvicorn[standard]>=0.30
+# pydantic>=2.0
+# python-dotenv
+# supabase>=2.0
+# # You already use client.interactions + gemini-embedding-2, so keep your current version
+# # (or newer). If "thinking_level" is rejected on the streaming path, run: pip install -U google-genai
+# google-genai
